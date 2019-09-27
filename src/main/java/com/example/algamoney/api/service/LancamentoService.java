@@ -1,9 +1,11 @@
 package com.example.algamoney.api.service;
 
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import javax.validation.Valid;
 
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -12,6 +14,8 @@ import com.example.algamoney.api.model.Pessoa;
 import com.example.algamoney.api.repository.LancamentoRepository;
 import com.example.algamoney.api.repository.PessoaRepository;
 import com.example.algamoney.api.service.exception.PessoaInexistenteOuInativaException;
+
+import net.bytebuddy.asm.Advice.Return;
 
 @Service
 public class LancamentoService {
@@ -24,12 +28,47 @@ public class LancamentoService {
 	
 	public Lancamento salvar(@Valid Lancamento lancamento) {
 		
-		Optional<Pessoa> pessoa = pessoaRepository.findById(lancamento.getPessoa().getCodigo());
-		if(!pessoa.isPresent() || pessoa.get().isInativo()){
-			throw new PessoaInexistenteOuInativaException();
-		}
+		validarPessoa(lancamento);
 		
 		return lancamentoRepository.save(lancamento);
 	}
+
+	
+	public Lancamento atualizar(Long codigo, Lancamento lancamento){
+		Lancamento lancamentoSalvo = buscarLancamentoExistente(codigo);
+		if(!lancamento.getPessoa().equals(lancamentoSalvo.getPessoa())){
+			validarPessoa(lancamento);
+		}
+		
+		BeanUtils.copyProperties(lancamento, lancamentoSalvo, "codigo");
+		return lancamentoRepository.save(lancamentoSalvo);
+	}
+
+
+	private Lancamento buscarLancamentoExistente(Long codigo) {
+		Optional<Lancamento> lancamentoSalvo = lancamentoRepository.findById(codigo);
+		if (lancamentoSalvo == null){
+			throw new NoSuchElementException();
+		}
+		
+		
+		return lancamentoSalvo.get();
+	}
+
+
+	private void validarPessoa(Lancamento lancamento) {
+		Optional<Pessoa>  pessoa = null;
+		if(lancamento.getPessoa().getCodigo() != null){
+			 pessoa = pessoaRepository.findById(lancamento.getPessoa().getCodigo());
+		}
+		
+		if (!pessoa.isPresent() || pessoa.get().isInativo() ){
+			throw new PessoaInexistenteOuInativaException();
+		}
+	}
+
+
+
+	
 
 }
