@@ -43,8 +43,6 @@ public class LancamentoRepositoryImpl implements LancamentoRepositoryQuery {
 		
 		return new PageImpl<>(query.getResultList(), pageable, total(lancamentoFilter)) ;
 	}
-
-
 	@Override
 	public Page<ResumoLancamento> resumir(LancamentoFilter lancamentoFilter, Pageable pageable) {
 		CriteriaBuilder builder = manager.getCriteriaBuilder();
@@ -86,6 +84,19 @@ public class LancamentoRepositoryImpl implements LancamentoRepositoryQuery {
 					builder.lessThanOrEqualTo(root.get(Lancamento_.dataVencimento), lancamentoFilter.getDataVencimentoAte()));
 		}
 		
+		if (lancamentoFilter.getValor() != null) {
+			predicates.add(
+					builder.equal(root.get(Lancamento_.valor), lancamentoFilter.getValor()));
+		}
+		if (lancamentoFilter.getDataPagamento() != null) {
+			predicates.add(
+					builder.equal(root.get(Lancamento_.dataPagamento), lancamentoFilter.getDataPagamento()));
+		}
+		
+		if (!StringUtils.isEmpty(lancamentoFilter.getPessoa())) {
+			predicates.add(builder.like(
+					builder.lower(root.get(Lancamento_.pessoa).get(Pessoa_.nome)), "%" + lancamentoFilter.getPessoa().toLowerCase() + "%"));
+		}
 		return predicates.toArray(new Predicate[predicates.size()]);
 	}
 	
